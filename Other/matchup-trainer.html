@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flex Rank Matchup Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Cinzel gives a LoL-ish “prestige” vibe without needing LoL proprietary fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg0:#05070b;
+      --bg1:#071018;
+      --panel:#0b141e;
+      --panel2:#0e1a26;
+      --edge:#2b3c4b;
+      --edge2:#3f5568;
+      --gold:#c8aa6e;
+      --gold2:#f0e6d2;
+      --teal:#0ac8b9;
+      --red:#d34b4b;
+      --muted:#9fb3c8;
+      --text:#e6eef6;
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --shadow2: 0 12px 30px rgba(0,0,0,.40);
+      --radius: 16px;
+      --radius2: 12px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(10,200,185,.12), transparent 60%),
+        radial-gradient(900px 700px at 80% 30%, rgba(200,170,110,.14), transparent 55%),
+        radial-gradient(900px 900px at 50% 90%, rgba(63,85,104,.18), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    /* subtle “client texture” */
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      background-image:
+        linear-gradient(transparent 0, rgba(255,255,255,.02) 1px, transparent 2px),
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,.03), transparent 45%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,.02), transparent 50%);
+      background-size: 100% 36px, 900px 900px, 1000px 1000px;
+      pointer-events:none;
+      mix-blend-mode: overlay;
+      opacity:.55;
+    }
+
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(180deg, rgba(5,7,11,.92), rgba(5,7,11,.72));
+      border-bottom: 1px solid rgba(200,170,110,.20);
+    }
+
+    .wrap{
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 18px 18px 38px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width: 260px;
+    }
+
+    .crest{
+      width:44px; height:44px;
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(240,230,210,.35), transparent 55%),
+        linear-gradient(180deg, rgba(200,170,110,.35), rgba(200,170,110,.05));
+      border: 1px solid rgba(200,170,110,.55);
+      box-shadow: 0 0 0 1px rgba(10,200,185,.15) inset, var(--shadow2);
+      position:relative;
+    }
+    .crest::after{
+      content:"";
+      position:absolute; inset:9px;
+      border-radius: 10px;
+      border:1px solid rgba(240,230,210,.28);
+      transform: rotate(10deg);
+      opacity:.7;
+    }
+
+    h1{
+      margin:0;
+      font-family: Cinzel, serif;
+      font-weight: 700;
+      letter-spacing: .8px;
+      font-size: 18px;
+      line-height:1.1;
+      color: var(--gold2);
+      text-transform: uppercase;
+    }
+    .subtitle{
+      margin-top:2px;
+      font-size: 12px;
+      color: rgba(159,179,200,.90);
+    }
+
+    .pillrow{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(14,26,38,.92), rgba(11,20,30,.82));
+      border: 1px solid rgba(200,170,110,.25);
+      box-shadow: 0 0 0 1px rgba(63,85,104,.20) inset;
+      color: rgba(230,238,246,.92);
+      font-size: 12px;
+      user-select:none;
+    }
+    .pill strong{ color: var(--gold2); font-weight:600; }
+
+    .btn{
+      appearance:none;
+      border:0;
+      cursor:pointer;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 12px;
+      color: rgba(240,230,210,.95);
+      background:
+        linear-gradient(180deg, rgba(200,170,110,.25), rgba(200,170,110,.06));
+      border: 1px solid rgba(200,170,110,.45);
+      box-shadow: 0 0 0 1px rgba(10,200,185,.12) inset, 0 10px 24px rgba(0,0,0,.35);
+      transition: transform .08s ease, filter .12s ease, border-color .12s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{ filter: brightness(1.08); border-color: rgba(240,230,210,.55); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.secondary{
+      background: linear-gradient(180deg, rgba(63,85,104,.35), rgba(14,26,38,.18));
+      border-color: rgba(63,85,104,.55);
+      color: rgba(230,238,246,.92);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .brand{ min-width:unset; }
+      .pillrow{ justify-content:flex-start; }
+    }
+
+    .card{
+      border-radius: var(--radius);
+      background:
+        radial-gradient(1200px 400px at 30% 0%, rgba(200,170,110,.10), transparent 55%),
+        linear-gradient(180deg, rgba(11,20,30,.96), rgba(11,20,30,.86));
+      border: 1px solid rgba(200,170,110,.22);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .card::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(90deg, rgba(10,200,185,.10), transparent 35%, rgba(10,200,185,.08)),
+        radial-gradient(circle at 20% 40%, rgba(240,230,210,.05), transparent 60%);
+      opacity:.35;
+      pointer-events:none;
+    }
+
+    .cardHead{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:10px;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid rgba(63,85,104,.35);
+      position:relative;
+      z-index:1;
+    }
+
+    .cardTitle{
+      font-family: Cinzel, serif;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--gold2);
+      font-size: 14px;
+      margin:0;
+    }
+    .cardMeta{
+      font-size: 12px;
+      color: rgba(159,179,200,.92);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(14,26,38,.75);
+      border: 1px solid rgba(63,85,104,.45);
+      color: rgba(230,238,246,.88);
+      font-size: 12px;
+    }
+    .dot{
+      width:6px; height:6px; border-radius: 99px;
+      background: var(--teal);
+      box-shadow: 0 0 0 2px rgba(10,200,185,.18);
+    }
+
+    .cardBody{
+      padding: 14px 16px 16px;
+      position:relative;
+      z-index:1;
+    }
+
+    .row{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 12px;
+    }
+
+    .select{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .seg{
+      display:inline-flex;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(63,85,104,.55);
+      background: rgba(7,16,24,.7);
+      box-shadow: 0 0 0 1px rgba(200,170,110,.12) inset;
+    }
+    .seg button{
+      border:0;
+      background: transparent;
+      color: rgba(230,238,246,.88);
+      font-weight: 600;
+      font-size: 12px;
+      padding: 10px 12px;
+      cursor:pointer;
+      transition: background .12s ease, color .12s ease;
+      min-width: 96px;
+    }
+    .seg button.active{
+      background:
+        linear-gradient(180deg, rgba(200,170,110,.28), rgba(200,170,110,.07));
+      color: rgba(240,230,210,.96);
+    }
+    .seg button:not(.active):hover{
+      background: rgba(63,85,104,.18);
+    }
+
+    .tip{
+      border-radius: var(--radius2);
+      background: linear-gradient(180deg, rgba(14,26,38,.72), rgba(11,20,30,.62));
+      border: 1px solid rgba(63,85,104,.45);
+      padding: 12px 12px;
+      box-shadow: 0 0 0 1px rgba(200,170,110,.10) inset;
+    }
+    .tip h3{
+      margin:0 0 8px 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(240,230,210,.92);
+      letter-spacing:.2px;
+    }
+    .tip p{
+      margin:0;
+      color: rgba(230,238,246,.88);
+      line-height:1.45;
+      font-size: 13px;
+    }
+    .tip .small{
+      margin-top:10px;
+      font-size: 12px;
+      color: rgba(159,179,200,.92);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .quiz{
+      margin-top: 12px;
+      border-radius: var(--radius2);
+      background: linear-gradient(180deg, rgba(14,26,38,.78), rgba(11,20,30,.66));
+      border: 1px solid rgba(200,170,110,.18);
+      padding: 12px 12px;
+      box-shadow: 0 0 0 1px rgba(63,85,104,.22) inset;
+    }
+    .qtitle{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .quiz h3{
+      margin:0 0 10px 0;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing:.2px;
+      color: rgba(240,230,210,.96);
+    }
+    .diff{
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(63,85,104,.55);
+      background: rgba(7,16,24,.55);
+      color: rgba(159,179,200,.92);
+      white-space:nowrap;
+    }
+
+    .answers{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .answer{
+      text-align:left;
+      width:100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(63,85,104,.55);
+      background:
+        radial-gradient(900px 300px at 20% 0%, rgba(63,85,104,.18), transparent 60%),
+        linear-gradient(180deg, rgba(7,16,24,.75), rgba(7,16,24,.55));
+      color: rgba(230,238,246,.92);
+      cursor:pointer;
+      transition: transform .08s ease, filter .12s ease, border-color .12s ease;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.20) inset;
+      position:relative;
+      overflow:hidden;
+    }
+    .answer:hover{ filter: brightness(1.08); border-color: rgba(200,170,110,.35); }
+    .answer:active{ transform: translateY(1px); }
+    .answer.correct{
+      border-color: rgba(10,200,185,.65);
+      box-shadow: 0 0 0 1px rgba(10,200,185,.20) inset, 0 0 26px rgba(10,200,185,.15);
+    }
+    .answer.wrong{
+      border-color: rgba(211,75,75,.70);
+      box-shadow: 0 0 0 1px rgba(211,75,75,.22) inset, 0 0 26px rgba(211,75,75,.12);
+    }
+
+    .feedback{
+      margin-top: 10px;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(63,85,104,.55);
+      background: rgba(7,16,24,.55);
+      color: rgba(230,238,246,.90);
+      font-size: 12.5px;
+      line-height:1.45;
+      display:none;
+    }
+    .feedback.show{ display:block; }
+    .feedback .label{
+      font-weight:800;
+      letter-spacing:.2px;
+      color: rgba(240,230,210,.94);
+    }
+
+    /* right column: progress */
+    .statGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .stat{
+      border-radius: var(--radius2);
+      background: linear-gradient(180deg, rgba(14,26,38,.74), rgba(11,20,30,.64));
+      border: 1px solid rgba(63,85,104,.48);
+      padding: 12px 12px;
+      box-shadow: 0 0 0 1px rgba(200,170,110,.08) inset;
+      position:relative;
+      overflow:hidden;
+    }
+    .stat::after{
+      content:"";
+      position:absolute; inset:-40% -60%;
+      background: radial-gradient(circle at 40% 40%, rgba(200,170,110,.18), transparent 55%);
+      transform: rotate(12deg);
+      opacity:.35;
+      pointer-events:none;
+    }
+    .stat .k{ font-size: 11px; color: rgba(159,179,200,.92); }
+    .stat .v{
+      margin-top:4px;
+      font-family: Cinzel, serif;
+      letter-spacing:.4px;
+      font-weight: 700;
+      color: rgba(240,230,210,.96);
+      font-size: 18px;
+    }
+
+    .progress{
+      border-radius: var(--radius2);
+      border: 1px solid rgba(200,170,110,.20);
+      background: rgba(7,16,24,.55);
+      padding: 12px 12px;
+      box-shadow: 0 0 0 1px rgba(63,85,104,.22) inset;
+    }
+    .progressTop{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      margin-bottom:8px;
+      flex-wrap:wrap;
+    }
+    .progressTop .label{
+      font-weight: 800;
+      color: rgba(240,230,210,.92);
+      letter-spacing:.2px;
+      font-size: 12px;
+    }
+    .bar{
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(63,85,104,.30);
+      border: 1px solid rgba(63,85,104,.55);
+      overflow:hidden;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.25) inset;
+    }
+    .bar > div{
+      height:100%;
+      width: 0%;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, rgba(10,200,185,.35), rgba(200,170,110,.55), rgba(240,230,210,.65));
+      box-shadow: 0 0 18px rgba(200,170,110,.18);
+      transition: width .35s ease;
+    }
+    .badgeRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(63,85,104,.55);
+      background: rgba(14,26,38,.70);
+      color: rgba(230,238,246,.88);
+      font-size: 12px;
+      opacity:.55;
+      filter: saturate(.9);
+      transition: opacity .15s ease, filter .15s ease, transform .08s ease, border-color .15s ease;
+    }
+    .badge.unlocked{
+      opacity: 1;
+      filter: saturate(1.05);
+      border-color: rgba(200,170,110,.38);
+      box-shadow: 0 0 0 1px rgba(200,170,110,.10) inset;
+    }
+    .badge.unlocked:hover{ transform: translateY(-1px); }
+    .badge .ico{
+      width: 10px; height: 10px; border-radius: 3px;
+      background: linear-gradient(180deg, rgba(240,230,210,.65), rgba(200,170,110,.25));
+      border: 1px solid rgba(200,170,110,.45);
+      box-shadow: 0 0 0 1px rgba(10,200,185,.10) inset;
+    }
+
+    .smallNote{
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(159,179,200,.92);
+      line-height:1.45;
+    }
+
+    .footerActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    /* celebration burst */
+    #burst{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index: 999;
+    }
+    .toast{
+      position: fixed;
+      left: 50%;
+      top: 16px;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(14,26,38,.92), rgba(7,16,24,.85));
+      border: 1px solid rgba(200,170,110,.42);
+      box-shadow: var(--shadow2);
+      color: rgba(240,230,210,.96);
+      font-weight: 700;
+      letter-spacing:.2px;
+      font-size: 12px;
+      display:none;
+    }
+    .toast.show{ display:block; animation: pop .18s ease; }
+    @keyframes pop{ from{ transform: translateX(-50%) translateY(-6px); opacity:.0 } to{ transform: translateX(-50%) translateY(0); opacity:1 } }
+
+    .divider{
+      height:1px;
+      background: linear-gradient(90deg, transparent, rgba(200,170,110,.35), transparent);
+      margin: 10px 0 12px;
+      opacity:.85;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="burst"></canvas>
+  <div class="toast" id="toast">Matchup Learned ✦</div>
+
+  <header>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">
+          <div class="crest" aria-hidden="true"></div>
+          <div>
+            <h1>Flex Rank Matchup Trainer</h1>
+            <div class="subtitle">Designed for Ryan • Gold Flex • Focus: Mid/Jungle decision-making</div>
+          </div>
+        </div>
+
+        <div class="pillrow">
+          <div class="pill"><span class="dot"></span> <strong id="dailyLabel">Daily Drill</strong> <span id="dailyDate"></span></div>
+          <button class="btn secondary" id="btnReset">Reset Progress</button>
+          <button class="btn" id="btnNew">New Question</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <!-- LEFT: Tip + Quiz -->
+      <section class="card" aria-label="Trainer">
+        <div class="cardHead">
+          <h2 class="cardTitle">Training Room</h2>
+          <div class="cardMeta">
+            <span class="tag" title="Champion focus"><span class="dot"></span> Focus: <span id="focusTag">Yasuo (Mid)</span></span>
+            <span class="tag" title="Matchup">Matchup: <span id="matchupTag">Ahri</span></span>
+          </div>
+        </div>
+
+        <div class="cardBody">
+          <div class="row">
+            <div class="select">
+              <div class="seg" role="tablist" aria-label="Champion">
+                <button id="segYasuo" class="active" role="tab" aria-selected="true">Yasuo • Mid</button>
+                <button id="segViego" role="tab" aria-selected="false">Viego • Jungle</button>
+              </div>
+
+              <div class="seg" role="tablist" aria-label="Mode">
+                <button id="segDaily" class="active" role="tab" aria-selected="true">Daily Drill</button>
+                <button id="segRandom" role="tab" aria-selected="false">Scrim Mode</button>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <span class="tag" title="Difficulty">Difficulty: <span id="diffTag">Advanced</span></span>
+            </div>
+          </div>
+
+          <div class="tip" id="tipCard">
+            <h3 id="tipTitle">Tip of the Drill</h3>
+            <p id="tipText"></p>
+            <div class="small">
+              <span>Focus: <strong id="tipFocus"></strong></span>
+              <span>Concept: <strong id="tipConcept"></strong></span>
+            </div>
+          </div>
+
+          <div class="quiz" id="quizCard">
+            <div class="qtitle">
+              <h3 id="qText">Question</h3>
+              <div class="diff" id="qDiff">ADVANCED</div>
+            </div>
+            <div class="answers" id="answers"></div>
+            <div class="feedback" id="feedback">
+              <span class="label" id="fbLabel"></span>
+              <span id="fbText"></span>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="footerActions">
+              <button class="btn" id="btnSubmit" disabled>Lock Answer</button>
+              <button class="btn secondary" id="btnReveal">Reveal Explanation</button>
+            </div>
+
+            <div class="smallNote">
+              Tip: questions are scenario-based and assume you already know champion mechanics.
+              This is about **lane/jungle thinking** (tempo, waves, vision, tracking, spikes).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Progress -->
+      <aside class="card" aria-label="Progress">
+        <div class="cardHead">
+          <h2 class="cardTitle">Progress</h2>
+          <div class="cardMeta">
+            <span class="tag">Streak: <strong id="streak">0</strong></span>
+            <span class="tag">Correct: <strong id="correct">0</strong></span>
+            <span class="tag">Attempts: <strong id="attempts">0</strong></span>
+          </div>
+        </div>
+
+        <div class="cardBody">
+          <div class="statGrid">
+            <div class="stat">
+              <div class="k">Matchups Learned</div>
+              <div class="v"><span id="learned">0</span>/<span id="goal">10</span></div>
+            </div>
+            <div class="stat">
+              <div class="k">Mastery Points</div>
+              <div class="v" id="mp">0</div>
+            </div>
+          </div>
+
+          <div class="progress">
+            <div class="progressTop">
+              <div class="label">Rank Climb Readiness</div>
+              <div style="font-size:12px; color: rgba(159,179,200,.92);">
+                +10 MP for correct • +2 MP for attempt
+              </div>
+            </div>
+            <div class="bar" aria-label="Progress bar">
+              <div id="barFill"></div>
+            </div>
+
+            <div class="badgeRow" id="badges"></div>
+
+            <div class="smallNote" id="note">
+              Designed to keep motivation even when Flex queue is unstable.
+              Do one drill/day to build confident matchup thinking.
+            </div>
+          </div>
+
+          <div class="footerActions">
+            <button class="btn secondary" id="btnExport">Export Progress (JSON)</button>
+            <button class="btn secondary" id="btnImport">Import Progress</button>
+          </div>
+
+          <div class="smallNote">
+            <strong>Vibe-coding note:</strong> this is a lightweight web prototype (no downloads) to match Ryan’s preference.
+            If this were in-client, it could appear as a “Training Room” panel.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    // ---------- Utilities ----------
+    const $ = (id) => document.getElementById(id);
+    const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
+
+    // Deterministic daily seed from date + focus
+    function mulberry32(a) {
+      return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+    }
+    function seedFromString(str){
+      let h = 2166136261;
+      for (let i=0;i<str.length;i++){
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    // ---------- Question bank (Advanced) ----------
+    // NOTE: These are general “advanced macro” scenarios. Not matchup-perfect frame data.
+    const bank = {
+      yasuo: [
+        {
+          id: "yasuo_ahri_wave3",
+          matchup: "Ahri",
+          concept: "Wave control + jungle timing",
+          difficulty: "Advanced",
+          tip: "Versus poke/control mages, your first real agency window is often tied to wave state and enemy cooldowns. If the wave is pushing to you, you can create a safer all-in angle on your terms.",
+          q: "You’re Yasuo vs Ahri. Wave 3 is arriving. You’re slightly down HP from poke, but you have Doran’s + Second Wind. Enemy jungler started bot and could path top. What’s the best plan if you want to avoid a losing trade AND reduce gank risk?",
+          answers: [
+            { t: "Hard shove Wave 3 with Q spam to crash, then take a deep ward alone in river.", ok:false,
+              why:"Hard shoving while low HP can expose you to a timed 2v1. If you ward after pushing, you still walked into fog during the gank window." },
+            { t: "Let the wave come to you; thin it so it freezes near your tower, then trade only when Ahri uses Q on the wave.", ok:true,
+              why:"Freezing near tower reduces gank angles and forces Ahri to overextend. Trading after her Q (key poke + wave tool) creates a clearer window." },
+            { t: "Stand in the middle of the wave to bait Charm, then dash through minions aggressively to ‘outplay’ regardless of wave state.", ok:false,
+              why:"High variance. If jungle is nearby or you misread cooldowns, you die and lose tempo. The question is about reducing risk." },
+            { t: "Give up the entire wave 3, recall immediately, and TP back (no TP) to avoid any danger.", ok:false,
+              why:"You can’t TP, and full recall this early usually sacrifices too much XP/gold unless you’re forced." }
+          ]
+        },
+        {
+          id: "yasuo_zed_lvl2",
+          matchup: "Zed",
+          concept: "Level spikes + spacing",
+          difficulty: "Advanced",
+          tip: "Into assassin lanes, your goal isn’t ‘win every trade’—it’s manage HP and wave so that their spike windows don’t convert into kill pressure with jungle.",
+          q: "Yasuo vs Zed. You hit level 2 first with a small minion advantage. What is the highest percentage play to convert the level lead without flipping the lane?",
+          answers: [
+            { t: "Instantly dash in for an extended trade even if Zed has a full wave to hit you back.", ok:false,
+              why:"Extended trades into a stacked enemy wave often lose due to minion damage; also sets up jungle punish." },
+            { t: "Take a short Q + auto trade when Zed steps up for CS, then back off to maintain the wave advantage.", ok:true,
+              why:"Short trade uses your temporary level lead while respecting minion damage and keeping the wave in a good state." },
+            { t: "Ignore Zed, spam Q to shove as fast as possible and roam with no vision.", ok:false,
+              why:"You’re not guaranteed roam value and can get punished by jungle; also you may give Zed free farm under tower." },
+            { t: "Hold Wind Wall at level 2 and all-in only if you land a tornado from max range.", ok:false,
+              why:"Wind Wall isn’t available at level 2; also the condition is too narrow. The best answer is a consistent short trade." }
+          ]
+        },
+        {
+          id: "yasuo_crash_recall",
+          matchup: "Orianna",
+          concept: "Crash → reset timing (tempo)",
+          difficulty: "Advanced",
+          tip: "One of the strongest ‘invisible’ skills is recalling on a clean tempo: crash a wave that denies the opponent options, then return with a buy while they’re stuck catching.",
+          q: "You’ve built a slow push vs Orianna and have 2.5 waves stacked. You’re at 65% HP and 900g. Enemy jungler last showed bot 20s ago. What’s the best tempo line?",
+          answers: [
+            { t: "Immediately recall before crashing so Orianna can’t poke you while you push.", ok:false,
+              why:"Recalling without crashing often gives Orianna a free shove and forces you to lose the stacked wave value." },
+            { t: "Crash the stacked wave into tower, ward on the exit path, then recall to convert gold into lane control.", ok:true,
+              why:"Crash denies Orianna time to trade into you, forces her to last-hit under tower, and gives you a clean reset." },
+            { t: "Dive Orianna under tower because stacked wave means guaranteed kill.", ok:false,
+              why:"High risk; Orianna can outplay with shield/ball and jungle might be nearby. The question asks highest percentage tempo." },
+            { t: "Freeze the wave in front of Orianna’s tower to keep pressure.", ok:false,
+              why:"Freezing that far up is unsafe and usually not stable unless you have jungle support." }
+          ]
+        },
+      ],
+
+      viego: [
+        {
+          id: "viego_tracking_3camp",
+          matchup: "Lee Sin",
+          concept: "Jungle tracking + lane state",
+          difficulty: "Advanced",
+          tip: "Good jungling is often ‘predictable on purpose’: you choose lines that sync with lane prio and deny the enemy’s best play.",
+          q: "You’re Viego. Enemy Lee Sin started bot. Mid is even, top has prio for you, bot has prio for enemy. You want to avoid being invaded early. Which opening is best?",
+          answers: [
+            { t: "Full clear towards bot to contest scuttle into enemy bot prio.", ok:false,
+              why:"Contesting into losing bot prio invites a 2v2/3v3 you likely lose early vs Lee." },
+            { t: "3–4 camp clear towards top, take top scuttle with top prio, then threaten a top/mid play.", ok:true,
+              why:"You sync to your winning lane for protection and reduce invade risk; also Lee’s strongest side is bot." },
+            { t: "Start enemy raptors level 1 to ‘cheese’ regardless of lane states.", ok:false,
+              why:"High variance and usually punished by Lee + lane collapse if prio isn’t guaranteed." },
+            { t: "Skip camps, sprint to river and flip scuttle coin at 3:15.", ok:false,
+              why:"Scuttle flips are exactly what you’re trying to avoid; Viego scales with consistent economy and safe tempo." }
+          ]
+        },
+        {
+          id: "viego_objective_trade",
+          matchup: "Jarvan IV",
+          concept: "Objective trading + tempo reset",
+          difficulty: "Advanced",
+          tip: "When you can’t contest an objective, the best response is a clean trade that preserves tempo: take something guaranteed and reset before you get collapsed on.",
+          q: "Enemy starts dragon with bot prio and your mid is shoved in. You’re Viego on top side with camps up. What is the best high-percentage response?",
+          answers: [
+            { t: "Walk into river anyway to ‘see what happens’ and maybe steal.", ok:false,
+              why:"Low prio lanes means you get collapsed; Viego early isn’t a reliable steal machine." },
+            { t: "Take Herald/top camps or invade top-side safely, then reset to spend gold and be on map for next play.", ok:true,
+              why:"You trade cross-map with guaranteed value and preserve tempo; avoiding deaths is progress." },
+            { t: "Force a bot gank through wards because dragon is happening.", ok:false,
+              why:"Bot has enemy prio and likely vision; you’re late and risk countergank/turn." },
+            { t: "AFK farm your own jungle and ignore everything.", ok:false,
+              why:"Too passive. The correct answer is a controlled trade, not doing nothing." }
+          ]
+        },
+        {
+          id: "viego_gank_wave_state",
+          matchup: "Kha'Zix",
+          concept: "Gank timing based on wave",
+          difficulty: "Advanced",
+          tip: "A gank is easiest when the enemy’s options are constrained by the wave: pushing without vision, slow pushing too far, or stuck last-hitting a crash.",
+          q: "Mid lane: your Yasuo is slow pushing a stacked wave that will crash in ~15s. Enemy mid has no flash. What is the best gank timing to maximize success with minimal risk?",
+          answers: [
+            { t: "Gank immediately before the crash while enemy can still retreat and you may take minion aggro.", ok:false,
+              why:"Before crash, enemy has more room to run. Also you may tank a big wave." },
+            { t: "Wait for the wave to crash; as the enemy is forced to last-hit under tower, threaten dive only if your laner can tank + you track enemy jungle.", ok:true,
+              why:"Crash constrains the enemy (they must choose CS vs safety). You still respect jungle tracking to avoid counterplay." },
+            { t: "Ignore the lane and solo invade enemy jungle with no vision because mid is ‘winning’.", ok:false,
+              why:"Winning lane helps, but blind invade is risky; the question is about timing a high-percentage play." },
+            { t: "Ping your laner to fight 1v1 and arrive after the trade is already decided.", ok:false,
+              why:"Late arrivals often waste tempo. You want to sync with the crash to create a clear window." }
+          ]
+        },
+      ]
+    };
+
+    // ---------- App state ----------
+    const STORAGE_KEY = "matchupTrainer_ryan_v1";
+    const defaultState = {
+      focus: "yasuo", // yasuo | viego
+      mode: "daily", // daily | random
+      goal: 10,
+      attempts: 0,
+      correct: 0,
+      streak: 0,
+      masteryPoints: 0,
+      learnedIds: [],
+      lastDailyId: null,
+      lastDailyDate: null
+    };
+
+    let state = loadState();
+    let current = null;
+    let selectedIdx = null;
+    let locked = false;
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return structuredClone(defaultState);
+        const parsed = JSON.parse(raw);
+        return { ...structuredClone(defaultState), ...parsed };
+      }catch{
+        return structuredClone(defaultState);
+      }
+    }
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // ---------- Daily selection ----------
+    function getTodayStr(){
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function pickQuestion(){
+      const list = bank[state.focus];
+      if(state.mode === "random"){
+        const r = Math.random();
+        return list[Math.floor(r * list.length)];
+      }
+      // daily: stable per day + focus
+      const today = getTodayStr();
+      const seed = seedFromString(`${today}:${state.focus}:ryan`);
+      const rng = mulberry32(seed);
+      const q = list[Math.floor(rng() * list.length)];
+      return q;
+    }
+
+    // ---------- Render ----------
+    function setSeg(){
+      $("segYasuo").classList.toggle("active", state.focus==="yasuo");
+      $("segViego").classList.toggle("active", state.focus==="viego");
+      $("segDaily").classList.toggle("active", state.mode==="daily");
+      $("segRandom").classList.toggle("active", state.mode==="random");
+
+      $("focusTag").textContent = state.focus==="yasuo" ? "Yasuo (Mid)" : "Viego (Jungle)";
+      $("diffTag").textContent = "Advanced";
+      $("goal").textContent = state.goal;
+
+      const d = new Date();
+      $("dailyDate").textContent = `${d.toLocaleString(undefined,{month:"short"})} ${d.getDate()}, ${d.getFullYear()}`;
+      $("dailyLabel").textContent = state.mode==="daily" ? "Daily Drill" : "Scrim Mode";
+    }
+
+    function renderProgress(){
+      $("attempts").textContent = state.attempts;
+      $("correct").textContent = state.correct;
+      $("streak").textContent = state.streak;
+      $("mp").textContent = state.masteryPoints;
+
+      const learned = new Set(state.learnedIds);
+      $("learned").textContent = learned.size;
+
+      const pct = (learned.size / state.goal) * 100;
+      $("barFill").style.width = `${clamp(pct,0,100)}%`;
+
+      const badgeDefs = [
+        { id:"b1", name:"First Blood", rule: s => s.correct >= 1 },
+        { id:"b2", name:"Streak x3", rule: s => s.streak >= 3 },
+        { id:"b3", name:"Macro Mind", rule: s => new Set(s.learnedIds).size >= 5 },
+        { id:"b4", name:"Rank Ready", rule: s => new Set(s.learnedIds).size >= s.goal },
+      ];
+
+      const holder = $("badges");
+      holder.innerHTML = "";
+      badgeDefs.forEach(b=>{
+        const el = document.createElement("div");
+        el.className = "badge" + (b.rule(state) ? " unlocked" : "");
+        el.innerHTML = `<span class="ico"></span><span>${b.name}</span>`;
+        holder.appendChild(el);
+      });
+    }
+
+    function renderQuestion(q){
+      current = q;
+      selectedIdx = null;
+      locked = false;
+
+      $("matchupTag").textContent = q.matchup;
+      $("tipTitle").textContent = `Tip: ${state.focus==="yasuo" ? "Mid Lane" : "Jungle"} Decision`;
+      $("tipText").textContent = q.tip;
+      $("tipFocus").textContent = state.focus==="yasuo" ? "Yasuo (Mid)" : "Viego (Jungle)";
+      $("tipConcept").textContent = q.concept;
+
+      $("qText").textContent = q.q;
+      $("qDiff").textContent = q.difficulty.toUpperCase();
+
+      const answers = $("answers");
+      answers.innerHTML = "";
+      q.answers.forEach((a, idx)=>{
+        const btn = document.createElement("button");
+        btn.className = "answer";
+        btn.type = "button";
+        btn.innerHTML = `<strong style="font-family:Cinzel,serif; letter-spacing:.2px; margin-right:6px;">${String.fromCharCode(65+idx)}.</strong> ${a.t}`;
+        btn.addEventListener("click", ()=>{
+          if(locked) return;
+          selectedIdx = idx;
+          Array.from(answers.children).forEach((c,i)=> c.style.outline = i===idx ? "2px solid rgba(200,170,110,.55)" : "none");
+          $("btnSubmit").disabled = false;
+          $("feedback").classList.remove("show");
+        });
+        answers.appendChild(btn);
+      });
+
+      $("btnSubmit").disabled = true;
+      $("feedback").classList.remove("show");
+      $("fbLabel").textContent = "";
+      $("fbText").textContent = "";
+    }
+
+    // ---------- Celebration ----------
+    const canvas = $("burst");
+    const ctx = canvas.getContext("2d");
+    function resizeCanvas(){
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function burst(x,y){
+      const particles = [];
+      const n = 80;
+      for(let i=0;i<n;i++){
+        const ang = Math.random()*Math.PI*2;
+        const sp = 1.5 + Math.random()*4.5;
+        particles.push({
+          x, y,
+          vx: Math.cos(ang)*sp,
+          vy: Math.sin(ang)*sp - 1.2,
+          life: 36 + Math.random()*18,
+          r: 1.2 + Math.random()*2.8,
+          hue: Math.random() < 0.55 ? "gold" : "teal"
+        });
+      }
+      let t=0;
+      function step(){
+        t++;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        for(const p of particles){
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.10;
+          p.life -= 1;
+        }
+        for(const p of particles){
+          if(p.life <= 0) continue;
+          const alpha = clamp(p.life/54, 0, 1);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+          if(p.hue==="gold"){
+            ctx.fillStyle = `rgba(200,170,110,${0.85*alpha})`;
+            ctx.shadowColor = "rgba(240,230,210,.55)";
+          }else{
+            ctx.fillStyle = `rgba(10,200,185,${0.80*alpha})`;
+            ctx.shadowColor = "rgba(10,200,185,.55)";
+          }
+          ctx.shadowBlur = 10;
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        if(t < 48) requestAnimationFrame(step);
+        else ctx.clearRect(0,0,canvas.width,canvas.height);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function showToast(text){
+      const t = $("toast");
+      t.textContent = text;
+      t.classList.add("show");
+      setTimeout(()=>t.classList.remove("show"), 1200);
+    }
+
+    // ---------- Logic ----------
+    function isSameDaily(){
+      const today = getTodayStr();
+      return state.lastDailyDate === today && state.lastDailyId;
+    }
+
+    function loadNext(){
+      const q = pickQuestion();
+      // If daily and already answered today, keep same question id to feel like “daily drill”
+      if(state.mode==="daily" && isSameDaily()){
+        const list = bank[state.focus];
+        const same = list.find(x=>x.id===state.lastDailyId);
+        if(same) return renderQuestion(same);
+      }
+      renderQuestion(q);
+      if(state.mode==="daily"){
+        state.lastDailyId = q.id;
+        state.lastDailyDate = getTodayStr();
+        saveState();
+      }
+    }
+
+    function lockAnswer(){
+      if(locked || selectedIdx===null || !current) return;
+      locked = true;
+      $("btnSubmit").disabled = true;
+
+      // attempts always increments, even if wrong (for difficulty realism)
+      state.attempts += 1;
+      state.masteryPoints += 2;
+
+      const chosen = current.answers[selectedIdx];
+      const answersEl = $("answers");
+      Array.from(answersEl.children).forEach((btn, idx)=>{
+        btn.style.outline = "none";
+        const isCorrect = current.answers[idx].ok;
+        if(isCorrect) btn.classList.add("correct");
+        if(idx===selectedIdx && !chosen.ok) btn.classList.add("wrong");
+        btn.disabled = true;
+      });
+
+      const fb = $("feedback");
+      fb.classList.add("show");
+
+      if(chosen.ok){
+        state.correct += 1;
+        state.streak += 1;
+        state.masteryPoints += 10;
+
+        // count as learned only once per question id
+        if(!state.learnedIds.includes(current.id)){
+          state.learnedIds.push(current.id);
+        }
+
+        $("fbLabel").textContent = "Correct — why this is high percentage:";
+        $("fbText").textContent = " " + chosen.why;
+
+        // celebration
+        const rect = answersEl.children[selectedIdx].getBoundingClientRect();
+        burst(rect.left + rect.width*0.6, rect.top + rect.height*0.5);
+        showToast("Matchup Learned ✦ +10 MP");
+
+      }else{
+        state.streak = 0;
+        $("fbLabel").textContent = "Not optimal — key idea:";
+        $("fbText").textContent = " " + chosen.why;
+        showToast("Review the concept • Try again tomorrow");
+      }
+
+      saveState();
+      renderProgress();
+    }
+
+    function reveal(){
+      if(!current) return;
+      $("feedback").classList.add("show");
+      if(selectedIdx===null){
+        $("fbLabel").textContent = "Coach Note:";
+        $("fbText").textContent = " Pick an option first to see why it wins/loses. This trainer is about wave/tempo/tracking choices.";
+        return;
+      }
+      const chosen = current.answers[selectedIdx];
+      $("fbLabel").textContent = chosen.ok ? "Coach Breakdown:" : "Coach Breakdown:";
+      $("fbText").textContent = " " + chosen.why;
+    }
+
+    // ---------- Import/Export ----------
+    function exportProgress(){
+      const data = JSON.stringify(state, null, 2);
+      navigator.clipboard?.writeText(data).catch(()=>{});
+      const blob = new Blob([data], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "matchup-trainer-progress.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast("Progress exported");
+    }
+    async function importProgress(){
+      const json = prompt("Paste progress JSON:");
+      if(!json) return;
+      try{
+        const parsed = JSON.parse(json);
+        state = { ...structuredClone(defaultState), ...parsed };
+        saveState();
+        setSeg();
+        renderProgress();
+        loadNext();
+        showToast("Progress imported");
+      }catch{
+        alert("Invalid JSON.");
+      }
+    }
+
+    // ---------- Wire UI ----------
+    $("segYasuo").addEventListener("click", ()=>{
+      state.focus="yasuo";
+      saveState();
+      setSeg(); renderProgress(); loadNext();
+    });
+    $("segViego").addEventListener("click", ()=>{
+      state.focus="viego";
+      saveState();
+      setSeg(); renderProgress(); loadNext();
+    });
+    $("segDaily").addEventListener("click", ()=>{
+      state.mode="daily";
+      saveState();
+      setSeg(); loadNext();
+    });
+    $("segRandom").addEventListener("click", ()=>{
+      state.mode="random";
+      saveState();
+      setSeg(); loadNext();
+    });
+
+    $("btnNew").addEventListener("click", ()=>{
+      loadNext();
+    });
+
+    $("btnSubmit").addEventListener("click", lockAnswer);
+    $("btnReveal").addEventListener("click", reveal);
+
+    $("btnReset").addEventListener("click", ()=>{
+      if(!confirm("Reset progress? This clears streak, points, and learned matchups.")) return;
+      state = structuredClone(defaultState);
+      saveState();
+      setSeg(); renderProgress(); loadNext();
+      showToast("Progress reset");
+    });
+
+    $("btnExport").addEventListener("click", exportProgress);
+    $("btnImport").addEventListener("click", importProgress);
+
+    // ---------- Init ----------
+    setSeg();
+    renderProgress();
+    loadNext();
+  </script>
+</body>
+</html>

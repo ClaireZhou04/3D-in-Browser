@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flex Rank Matchup Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+  <canvas id="burst"></canvas>
+  <div class="toast" id="toast">Matchup Learned ✦</div>
+
+  <header class="appHeader">
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">
+          <div class="crest" aria-hidden="true"></div>
+          <div>
+            <h1>Flex Rank Matchup Trainer</h1>
+            <div class="subtitle">Designed for Ryan • Gold Flex • Focus: Mid/Jungle decision-making</div>
+          </div>
+        </div>
+
+        <div class="pillrow">
+          <div class="pill"><span class="dot"></span> <strong id="dailyLabel">Daily Drill</strong> <span id="dailyDate"></span></div>
+          <button class="btn secondary" id="btnReset">Reset Progress</button>
+          <button class="btn" id="btnNew">New Question</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <!-- LEFT: Tip + Quiz -->
+      <section class="card" aria-label="Trainer">
+        <div class="cardHead">
+          <h2 class="cardTitle">Training Room</h2>
+          <div class="cardMeta">
+            <span class="tag" title="Champion focus"><span class="dot"></span> Focus: <span id="focusTag">Yasuo (Mid)</span></span>
+            <span class="tag" title="Matchup">Matchup: <span id="matchupTag">Ahri</span></span>
+          </div>
+        </div>
+
+        <div class="cardBody">
+          <div class="row">
+            <div class="select">
+              <div class="seg" role="tablist" aria-label="Champion">
+                <button id="segYasuo" class="active" role="tab" aria-selected="true">Yasuo • Mid</button>
+                <button id="segViego" role="tab" aria-selected="false">Viego • Jungle</button>
+              </div>
+
+              <div class="seg" role="tablist" aria-label="Mode">
+                <button id="segDaily" class="active" role="tab" aria-selected="true">Daily Drill</button>
+                <button id="segRandom" role="tab" aria-selected="false">Scrim Mode</button>
+              </div>
+            </div>
+
+            <span class="tag" title="Difficulty">Difficulty: <span id="diffTag">Advanced</span></span>
+          </div>
+
+          <!-- NEW: Visual panel related to the question -->
+          <div class="vizGrid">
+            <figure class="vizCard" aria-label="Wave visual">
+              <img id="imgWave" alt="Wave state visual" />
+              <figcaption>
+                <span class="vizTitle">Wave State</span>
+                <span class="vizSub" id="vizWaveLabel">Freeze / Crash / Slow Push</span>
+              </figcaption>
+            </figure>
+
+            <figure class="vizCard" aria-label="Jungle tracking visual">
+              <img id="imgMap" alt="Jungle tracking mini-map visual" />
+              <figcaption>
+                <span class="vizTitle">Map & Tracking</span>
+                <span class="vizSub" id="vizMapLabel">Prio • Pathing • Gank window</span>
+              </figcaption>
+            </figure>
+
+            <figure class="vizCard" aria-label="Timing visual">
+              <img id="imgTempo" alt="Tempo timeline visual" />
+              <figcaption>
+                <span class="vizTitle">Tempo</span>
+                <span class="vizSub" id="vizTempoLabel">Crash → Ward → Reset</span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="tip" id="tipCard">
+            <h3 id="tipTitle">Tip of the Drill</h3>
+            <p id="tipText"></p>
+            <div class="small">
+              <span>Focus: <strong id="tipFocus"></strong></span>
+              <span>Concept: <strong id="tipConcept"></strong></span>
+            </div>
+          </div>
+
+          <div class="quiz" id="quizCard">
+            <div class="qtitle">
+              <h3 id="qText">Question</h3>
+              <div class="diff" id="qDiff">ADVANCED</div>
+            </div>
+            <div class="answers" id="answers"></div>
+
+            <div class="feedback" id="feedback">
+              <span class="label" id="fbLabel"></span>
+              <span id="fbText"></span>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="footerActions">
+              <button class="btn" id="btnSubmit" disabled>Lock Answer</button>
+              <button class="btn secondary" id="btnReveal">Reveal Explanation</button>
+            </div>
+
+            <div class="smallNote">
+              Tip: questions are scenario-based and assume you already know champion mechanics.
+              This is about <strong>lane/jungle thinking</strong> (tempo, waves, vision, tracking, spikes).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Progress -->
+      <aside class="card" aria-label="Progress">
+        <div class="cardHead">
+          <h2 class="cardTitle">Progress</h2>
+          <div class="cardMeta">
+            <span class="tag">Streak: <strong id="streak">0</strong></span>
+            <span class="tag">Correct: <strong id="correct">0</strong></span>
+            <span class="tag">Attempts: <strong id="attempts">0</strong></span>
+          </div>
+        </div>
+
+        <div class="cardBody">
+          <div class="statGrid">
+            <div class="stat">
+              <div class="k">Matchups Learned</div>
+              <div class="v"><span id="learned">0</span>/<span id="goal">10</span></div>
+            </div>
+            <div class="stat">
+              <div class="k">Mastery Points</div>
+              <div class="v" id="mp">0</div>
+            </div>
+          </div>
+
+          <div class="progress">
+            <div class="progressTop">
+              <div class="label">Rank Climb Readiness</div>
+              <div class="mutedText">+10 MP correct • +2 MP attempt</div>
+            </div>
+            <div class="bar"><div id="barFill"></div></div>
+            <div class="badgeRow" id="badges"></div>
+            <div class="smallNote" id="note">
+              Designed to keep motivation even when Flex queue is unstable.
+              Do one drill/day to build confident matchup thinking.
+            </div>
+          </div>
+
+          <div class="footerActions">
+            <button class="btn secondary" id="btnExport">Export Progress (JSON)</button>
+            <button class="btn secondary" id="btnImport">Import Progress</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
