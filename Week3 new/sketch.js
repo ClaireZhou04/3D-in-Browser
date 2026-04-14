@@ -1,13 +1,21 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 
 // =====================
 // SCENE & CAMERA
 // =====================
 const scene = new THREE.Scene();
 
+const textureLoader = new THREE.TextureLoader();
 
-scene.fog = new THREE.Fog(0x5f6d78, 5, 28);
+// 🌥️ sky
+const skyTexture = textureLoader.load("sky.jpg");
+skyTexture.mapping = THREE.EquirectangularReflectionMapping;
+scene.background = skyTexture;
+
+// 🌫️ 灰蓝雾（中间值）
+scene.fog = new THREE.FogExp2(0xbfc7cc, 0.055);
 
 const camera = new THREE.PerspectiveCamera(
   85,
@@ -18,18 +26,6 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 1.2, -0.2);
 
 // =====================
-// SKY SPHERE ☁️（关键新增）
-// =====================
-const skyGeo = new THREE.SphereGeometry(80, 32, 32);
-const skyMat = new THREE.MeshBasicMaterial({
-  color: 0x8aa0b3,
-  side: THREE.BackSide,
-});
-
-const sky = new THREE.Mesh(skyGeo, skyMat);
-scene.add(sky);
-
-// =====================
 // RENDERER
 // =====================
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -38,13 +34,26 @@ renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 // =====================
+// HDR（正确）
+// =====================
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+pmremGenerator.compileEquirectangularShader();
+
+new RGBELoader().load("rain.hdr", function (hdr) {
+  const envMap = pmremGenerator.fromEquirectangular(hdr).texture;
+  scene.environment = envMap;
+
+  hdr.dispose();
+  pmremGenerator.dispose();
+});
+
+// =====================
 // CONTROLS
 // =====================
 const controls = new PointerLockControls(camera, document.body);
 
 // =====================
 // CURSOR
-// =====================
 const cursor = document.createElement("div");
 cursor.style.position = "absolute";
 cursor.style.top = "50%";
@@ -61,7 +70,6 @@ document.body.appendChild(cursor);
 
 // =====================
 // INSTRUCTIONS
-// =====================
 let instructionsVisible = true;
 const instructions = document.createElement("div");
 instructions.style.position = "absolute";
@@ -77,23 +85,53 @@ document.body.appendChild(instructions);
 
 // =====================
 // LIGHT
-// =====================
 const dirLight = new THREE.DirectionalLight(0xffffff, 1);
 dirLight.position.set(5, 10, 5);
 dirLight.castShadow = true;
 scene.add(dirLight);
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+scene.add(new THREE.AmbientLight(0xffffff, 0));
 
 // =====================
 // GROUND
 // =====================
+const grassTexture = textureLoader.load("grass.jpg");
+
 const groundGeo = new THREE.PlaneGeometry(50, 50);
 groundGeo.rotateX(-Math.PI / 2);
 
-const groundMat = new THREE.MeshStandardMaterial({ color: 0x556655 });
+const groundMat = new THREE.MeshStandardMaterial({
+  map: grassTexture,
+});
+
 const ground = new THREE.Mesh(groundGeo, groundMat);
 ground.receiveShadow = true;
 scene.add(ground);
+
+// =====================
+// 🌫️ HORIZON FOG（上下两层灰雾）
+// =====================
+const fogMat = new THREE.MeshBasicMaterial({
+  color: 0xbfc7cc,
+  transparent: true,
+  opacity: 0.22,
+  depthWrite: false,
+});
+
+// 下层
+const fogPlaneBottom = new THREE.Mesh(
+  new THREE.PlaneGeometry(60, 15),
+  fogMat
+);
+fogPlaneBottom.position.set(0, 2, 12);
+scene.add(fogPlaneBottom);
+
+// 上层
+const fogPlaneTop = new THREE.Mesh(
+  new THREE.PlaneGeometry(60, 20),
+  fogMat
+);
+fogPlaneTop.position.set(0, 8, 14);
+scene.add(fogPlaneTop);
 
 // =====================
 // LEGS
@@ -107,12 +145,29 @@ const leftLeg = new THREE.Mesh(
 leftLeg.rotation.x = -Math.PI / 2;
 leftLeg.position.set(-0.2, 0, 0.5);
 
-const wound = new THREE.Mesh(
-  new THREE.CircleGeometry(0.07, 16),
-  new THREE.MeshStandardMaterial({ color: 0xaa0000 })
-);
+// =====================
+// 🩸 WOUND（已改：2D叶子贴片 + 横向）
+// =====================
+const woundShape = new THREE.Shape();
+
+woundShape.moveTo(0, 0);
+woundShape.quadraticCurveTo(-0.08, 0.06, -0.02, 0.12);
+woundShape.quadraticCurveTo(0.08, 0.06, 0, 0);
+
+const woundGeo = new THREE.ShapeGeometry(woundShape);
+
+const woundMat = new THREE.MeshStandardMaterial({
+  color: 0xaa0000,
+  roughness: 0.9,
+  metalness: 0.0,
+});
+
+const wound = new THREE.Mesh(woundGeo, woundMat);
+
+// ✔ 贴在腿上 + 横过来
 wound.rotation.x = -Math.PI / 2;
-wound.position.set(-0.18, 0.14, 0.5);
+wound.rotation.z = Math.PI / 2;
+wound.position.set(-0.15, 0.14, 0.4);
 
 scene.add(leftLeg, wound);
 
@@ -124,9 +179,6 @@ rightLeg.rotation.x = -Math.PI / 2.5;
 rightLeg.position.set(0.2, 0.1, 0.5);
 scene.add(rightLeg);
 
-// =====================
-// BODY
-// =====================
 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
 const body = new THREE.Mesh(
   new THREE.CylinderGeometry(0.15, 0.15, 1, 18),
@@ -140,7 +192,11 @@ scene.add(body);
 // PHONE
 // =====================
 const phoneGeo = new THREE.BoxGeometry(0.05, 0.3, 0.6);
-const phoneMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+const phoneMat = new THREE.MeshStandardMaterial({
+  color: 0x222222,
+  metalness: 0.8,
+  roughness: 0.2,
+});
 const phone = new THREE.Mesh(phoneGeo, phoneMat);
 phone.rotation.z = Math.PI / 2;
 phone.position.set(-1, 0.025, 1);
@@ -272,16 +328,19 @@ window.addEventListener("click", () => {
 function animate() {
   requestAnimationFrame(animate);
 
-  // rain
   const pos = rain.geometry.attributes.position;
+
   for (let i = 0; i < rainCount; i++) {
     let y = pos.getY(i) - 0.2;
     if (y < 0) y = 20;
     pos.setY(i, y);
   }
+
   pos.needsUpdate = true;
 
-  // cursor
+  fogPlaneBottom.position.x = camera.position.x;
+  fogPlaneTop.position.x = camera.position.x;
+
   raycaster.setFromCamera({ x: 0, y: 0 }, camera);
   const intersects = raycaster.intersectObject(phone);
 
