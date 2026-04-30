@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Memory Island</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #333; }
+        #loading {
+            position: absolute; top: 20px; left: 20px;
+            color: white; font-family: sans-serif; z-index: 10;
+            pointer-events: none; text-shadow: 1px 1px 2px black;
+        }
+        
+        #fade-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: white; opacity: 0;
+            pointer-events: none; z-index: 100;
+            transition: opacity 2.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Click to start, use WASD to move.</div>
+    <div id="fade-overlay"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="sketch.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory - Reconstruction</title>
+    <style>
+        /* 基础样式：确保页面填满屏幕 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff; /* 初始为白，配合上一页的渐变 */
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #1a1a1a;
+            font-family: 'Georgia', serif;
+        }
+
+        /* 文字 UI 层：初始显示在最前面 */
+        #ui-layer {
+            position: relative;
+            z-index: 10;
+            max-width: 800px;
+            padding: 40px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.8);
+            transition: opacity 1s ease;
+        }
+
+        .content {
+            font-size: 22px;
+            line-height: 1.8;
+            margin-bottom: 50px;
+            opacity: 0;
+            animation: fadeIn 3s forwards 0.5s;
+        }
+
+        .upload-btn {
+            background: #000000;
+            color: #ffffff;
+            border: none;
+            padding: 16px 40px;
+            font-family: 'Helvetica', sans-serif;
+            font-size: 13px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            opacity: 0;
+            animation: fadeIn 2s forwards 3s; 
+        }
+
+        .upload-btn:hover {
+            background: #444;
+            letter-spacing: 3px;
+        }
+
+        @keyframes fadeIn { 
+            to { opacity: 1; } 
+        }
+
+        /* Canvas 画布：固定在底层背景 */
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1; /* 初始在 UI 下面 */
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div class="content">
+            Thank you for experiencing my earliest memory of home: <br>
+            staring at a leaking refrigerator while I was just learning to walk. <br><br>
+            Now, I would like to offer everyone the opportunity to recreate their own home. <br>
+            By uploading a single photograph, you can experience looking around a room—generated from that very image—in full 360-degree perspective.
+        </div>
+        <button class="upload-btn">Upload Picture</button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module" src="sketch2.js"></script>
+
+</body>
+</html>
